@@ -1,0 +1,85 @@
+<svg viewBox="0 0 520 640" xmlns="http://www.w3.org/2000/svg" width="520" height="640">
+  <!-- Window shell -->
+  <rect width="520" height="640" rx="12" fill="#0a0c14"/>
+  <rect width="520" height="640" rx="12" fill="none" stroke="#1e2235" stroke-width="1"/>
+
+  <!-- ── Title bar ── -->
+  <rect width="520" height="48" rx="12" fill="#0c0e1b"/>
+  <rect y="24" width="520" height="24" fill="#0c0e1b"/>
+
+  <!-- AI Bridge brand asset (same asset used by the desktop UI) -->
+  <image href="../ai_bridge/ui/assets/brands/ia-bridge.jpg" x="214" y="7" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- App name -->
+  <text x="242" y="29" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" font-weight="600" fill="#f1f5f9">AI Bridge</text>
+
+  <!-- Window buttons -->
+  <rect x="450" y="14" width="22" height="20" rx="5" fill="#1a1f35"/>
+  <line x1="456" y1="24" x2="466" y2="24" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="480" y="14" width="22" height="20" rx="5" fill="#1a1f35"/>
+  <line x1="486" y1="19" x2="496" y2="29" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="496" y1="19" x2="486" y2="29" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- ── Navigation ── -->
+  <rect y="48" width="520" height="40" fill="#0a0c14"/>
+  <text x="28" y="73" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" font-weight="500" fill="#f1f5f9">Início</text>
+  <rect x="24" y="85" width="46" height="2" rx="1" fill="#6366f1"/>
+  <text x="100" y="73" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" fill="#475569">Provedores</text>
+  <line x1="0" y1="87" x2="520" y2="87" stroke="#1e2235" stroke-width="1"/>
+
+  <!-- ── Section heading ── -->
+  <text x="28" y="120" font-family="'Segoe UI',system-ui,sans-serif" font-size="17" font-weight="700" fill="#f1f5f9">Destinos</text>
+  <text x="28" y="141" font-family="'Segoe UI',system-ui,sans-serif" font-size="12" fill="#475569">Selecione um destino para conectar</text>
+
+  <!-- ── Card 1: Claude Code ── -->
+  <rect x="20" y="154" width="480" height="88" rx="10" fill="#0f1220" stroke="#1e2235" stroke-width="1"/>
+  <rect x="36" y="170" width="40" height="40" rx="8" fill="#161a2e"/>
+  <!-- Official Claude brand asset -->
+  <image href="../ai_bridge/ui/assets/brands/claude-code.png" x="36" y="170" width="40" height="40" preserveAspectRatio="xMidYMid meet"/>
+  <text x="90" y="192" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" font-weight="600" fill="#f1f5f9">Claude Code</text>
+  <text x="90" y="212" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#64748b">Terminal e IDEs</text>
+  <circle cx="393" cy="184" r="3.5" fill="#f59e0b"/>
+  <text x="403" y="188" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#64748b">Desconectado</text>
+  <rect x="378" y="208" width="104" height="24" rx="6" fill="#6366f1"/>
+  <text x="430" y="220" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="12" font-weight="500" fill="white">Conectar</text>
+
+  <!-- ── Card 2: Claude Desktop — CONNECTED ── -->
+  <rect x="20" y="254" width="480" height="88" rx="10" fill="#0f1220" stroke="#6366f1" stroke-opacity="0.35" stroke-width="1"/>
+  <rect x="20" y="254" width="3" height="88" rx="1.5" fill="#6366f1"/>
+  <rect x="36" y="270" width="40" height="40" rx="8" fill="#161a2e"/>
+  <!-- Official Claude brand asset -->
+  <image href="../ai_bridge/ui/assets/brands/claude-code.png" x="36" y="270" width="40" height="40" preserveAspectRatio="xMidYMid meet"/>
+  <text x="90" y="292" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" font-weight="600" fill="#f1f5f9">Claude Desktop</text>
+  <text x="90" y="312" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#64748b">App para computador · :38771</text>
+  <circle cx="393" cy="284" r="3.5" fill="#22c55e"/>
+  <text x="403" y="288" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#22c55e">Conectado</text>
+  <rect x="366" y="308" width="116" height="24" rx="6" fill="none" stroke="#ef4444" stroke-width="1"/>
+  <text x="424" y="320" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="12" font-weight="500" fill="#ef4444">Desconectar</text>
+
+  <!-- ── Card 3: Codex ── -->
+  <rect x="20" y="354" width="480" height="88" rx="10" fill="#0f1220" stroke="#1e2235" stroke-width="1"/>
+  <rect x="36" y="370" width="40" height="40" rx="8" fill="#161a2e"/>
+  <!-- Codex brand asset -->
+  <image href="../ai_bridge/ui/assets/brands/codex.png" x="36" y="370" width="40" height="40" preserveAspectRatio="xMidYMid meet"/>
+  <text x="90" y="392" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" font-weight="600" fill="#f1f5f9">Codex</text>
+  <text x="90" y="412" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#64748b">App, terminal e IDEs</text>
+  <circle cx="393" cy="384" r="3.5" fill="#f59e0b"/>
+  <text x="403" y="388" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#64748b">Desconectado</text>
+  <rect x="378" y="408" width="104" height="24" rx="6" fill="#6366f1"/>
+  <text x="430" y="420" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="12" font-weight="500" fill="white">Conectar</text>
+
+  <!-- ── Status info bar ── -->
+  <rect x="20" y="458" width="480" height="50" rx="10" fill="#0f1220" stroke="#1e2235" stroke-width="1"/>
+  <circle cx="40" cy="483" r="3.5" fill="#22c55e"/>
+  <text x="52" y="487" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#64748b">Proxy ativo · 127.0.0.1:38771</text>
+  <rect x="298" y="472" width="90" height="20" rx="5" fill="#161a2e"/>
+  <text x="343" y="482" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#64748b">4 modelos</text>
+  <rect x="396" y="472" width="88" height="20" rx="5" fill="#161a2e"/>
+  <text x="440" y="482" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#64748b">2 provedores</text>
+
+  <!-- ── Footer ── -->
+  <line x1="0" y1="604" x2="520" y2="604" stroke="#1e2235" stroke-width="1"/>
+  <text x="28" y="624" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#334155">AI Bridge v1.0.0</text>
+  <circle cx="456" cy="621" r="3" fill="#22c55e"/>
+  <text x="464" y="625" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#334155">Proxy ativo</text>
+</svg>
