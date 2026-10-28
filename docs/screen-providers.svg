@@ -1,0 +1,106 @@
+<svg viewBox="0 0 520 640" xmlns="http://www.w3.org/2000/svg" width="520" height="640">
+  <!-- Window shell -->
+  <rect width="520" height="640" rx="12" fill="#0a0c14"/>
+  <rect width="520" height="640" rx="12" fill="none" stroke="#1e2235" stroke-width="1"/>
+
+  <!-- ── Title bar ── -->
+  <rect width="520" height="48" rx="12" fill="#0c0e1b"/>
+  <rect y="24" width="520" height="24" fill="#0c0e1b"/>
+
+  <!-- AI Bridge brand asset -->
+  <image href="../ai_bridge/ui/assets/brands/ia-bridge.jpg" x="214" y="7" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- App name -->
+  <text x="242" y="29" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" font-weight="600" fill="#f1f5f9">AI Bridge</text>
+
+  <!-- Window buttons -->
+  <rect x="450" y="14" width="22" height="20" rx="5" fill="#1a1f35"/>
+  <line x1="456" y1="24" x2="466" y2="24" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="480" y="14" width="22" height="20" rx="5" fill="#1a1f35"/>
+  <line x1="486" y1="19" x2="496" y2="29" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="496" y1="19" x2="486" y2="29" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- ── Navigation ── -->
+  <rect y="48" width="520" height="40" fill="#0a0c14"/>
+  <text x="28" y="73" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" fill="#475569">Início</text>
+  <text x="100" y="73" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" font-weight="500" fill="#f1f5f9">Provedores</text>
+  <rect x="96" y="85" width="74" height="2" rx="1" fill="#6366f1"/>
+  <line x1="0" y1="87" x2="520" y2="87" stroke="#1e2235" stroke-width="1"/>
+
+  <!-- ── Section heading ── -->
+  <text x="28" y="120" font-family="'Segoe UI',system-ui,sans-serif" font-size="17" font-weight="700" fill="#f1f5f9">Provedores</text>
+  <text x="28" y="141" font-family="'Segoe UI',system-ui,sans-serif" font-size="12" fill="#475569">Gerencie suas chaves e modelos</text>
+  <rect x="400" y="106" width="100" height="28" rx="7" fill="#6366f1"/>
+  <text x="450" y="120" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="12" font-weight="500" fill="white">+ Adicionar</text>
+
+  <!-- ── Provider Card 1: DeepSeek ── -->
+  <rect x="20" y="154" width="480" height="60" rx="8" fill="#0f1220" stroke="#1e2235" stroke-width="1"/>
+  <rect x="36" y="172" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="50" y="191" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="12" font-weight="700" fill="#06b6d4">DS</text>
+  <text x="78" y="184" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" font-weight="600" fill="#f1f5f9">DeepSeek</text>
+  <text x="78" y="202" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#475569">api.deepseek.com/v1 · 2 modelos</text>
+  <rect x="406" y="172" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="420" y="187" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#64748b">✎</text>
+  <rect x="442" y="172" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="456" y="187" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#475569">🗑</text>
+
+  <!-- ── Provider Card 2: OpenAI ── -->
+  <rect x="20" y="224" width="480" height="60" rx="8" fill="#0f1220" stroke="#1e2235" stroke-width="1"/>
+  <rect x="36" y="242" width="28" height="28" rx="6" fill="#161a2e"/>
+  <circle cx="50" cy="256" r="8" fill="none" stroke="#e5e7eb" stroke-width="1.5"/>
+  <circle cx="50" cy="256" r="4" fill="#e5e7eb"/>
+  <text x="78" y="254" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" font-weight="600" fill="#f1f5f9">OpenAI</text>
+  <text x="78" y="272" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#475569">api.openai.com/v1 · 4 modelos</text>
+  <rect x="406" y="242" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="420" y="257" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#64748b">✎</text>
+  <rect x="442" y="242" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="456" y="257" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#475569">🗑</text>
+
+  <!-- ── Provider Card 3: Groq ── -->
+  <rect x="20" y="294" width="480" height="60" rx="8" fill="#0f1220" stroke="#1e2235" stroke-width="1"/>
+  <rect x="36" y="312" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="50" y="331" text-anchor="middle" dominant-baseline="middle" font-size="14">🔥</text>
+  <text x="78" y="324" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" font-weight="600" fill="#f1f5f9">Groq</text>
+  <text x="78" y="342" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#475569">api.groq.com/openai/v1 · 3 modelos</text>
+  <rect x="406" y="312" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="420" y="327" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#64748b">✎</text>
+  <rect x="442" y="312" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="456" y="327" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#475569">🗑</text>
+
+  <!-- ── Provider Card 4: Gemini ── -->
+  <rect x="20" y="364" width="480" height="60" rx="8" fill="#0f1220" stroke="#1e2235" stroke-width="1"/>
+  <rect x="36" y="382" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="50" y="401" text-anchor="middle" dominant-baseline="middle" font-size="14">✨</text>
+  <text x="78" y="394" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" font-weight="600" fill="#f1f5f9">Gemini</text>
+  <text x="78" y="412" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#475569">generativelanguage.googleapis.com · 3 modelos</text>
+  <rect x="406" y="382" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="420" y="397" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#64748b">✎</text>
+  <rect x="442" y="382" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="456" y="397" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#475569">🗑</text>
+
+  <!-- ── Provider Card 5: Mistral ── -->
+  <rect x="20" y="434" width="480" height="60" rx="8" fill="#0f1220" stroke="#1e2235" stroke-width="1"/>
+  <rect x="36" y="452" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="50" y="471" text-anchor="middle" dominant-baseline="middle" font-size="14">🌊</text>
+  <text x="78" y="464" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" font-weight="600" fill="#f1f5f9">Mistral</text>
+  <text x="78" y="482" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#475569">api.mistral.ai/v1 · 3 modelos</text>
+  <rect x="406" y="452" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="420" y="467" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#64748b">✎</text>
+  <rect x="442" y="452" width="28" height="28" rx="6" fill="#161a2e"/>
+  <text x="456" y="467" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="14" fill="#475569">🗑</text>
+
+  <!-- ── Status info bar ── -->
+  <rect x="20" y="508" width="480" height="50" rx="10" fill="#0f1220" stroke="#1e2235" stroke-width="1"/>
+  <circle cx="40" cy="533" r="3.5" fill="#22c55e"/>
+  <text x="52" y="537" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#64748b">Proxy ativo · 127.0.0.1:38771</text>
+  <rect x="298" y="522" width="90" height="20" rx="5" fill="#161a2e"/>
+  <text x="343" y="532" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#64748b">9 modelos</text>
+  <rect x="396" y="522" width="88" height="20" rx="5" fill="#161a2e"/>
+  <text x="440" y="532" text-anchor="middle" dominant-baseline="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" fill="#64748b">5 provedores</text>
+
+  <!-- ── Footer ── -->
+  <line x1="0" y1="604" x2="520" y2="604" stroke="#1e2235" stroke-width="1"/>
+  <text x="28" y="624" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#334155">AI Bridge v1.0.0</text>
+  <circle cx="456" cy="621" r="3" fill="#22c55e"/>
+  <text x="464" y="625" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" fill="#334155">Proxy ativo</text>
+</svg>
