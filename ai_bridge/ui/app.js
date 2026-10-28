@@ -4,10 +4,10 @@
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
 const ICONS = {
-  claude_code:    `<img src="assets/brands/claude-code.png" class="w-10 h-10 object-contain" alt="Claude Code">`,
-  claude_desktop: `<img src="assets/brands/claude-code.png" class="w-10 h-10 object-contain" alt="Claude Desktop">`,
-  codex:          `<img src="assets/brands/codex.png" class="w-10 h-10 object-contain" alt="Codex">`,
-  bridge:         `<img src="assets/brands/ia-bridge.jpg" class="w-10 h-10 object-contain rounded-lg" alt="AI Bridge">`,
+  claude_code:    `<img src="assets/icons/claude-mark.png" class="ab-brand-mark ab-brand-mark--claude" alt="Claude Code">`,
+  claude_desktop: `<img src="assets/icons/claude-mark.png" class="ab-brand-mark ab-brand-mark--claude" alt="Claude Desktop">`,
+  codex:          `<img src="assets/icons/codex-mark.png" class="ab-brand-mark ab-brand-mark--codex" alt="Codex">`,
+  bridge:         `<img src="assets/icons/bridge-mark.svg" class="ab-brand-mark ab-brand-mark--bridge" alt="AI Bridge">`,
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -81,7 +81,8 @@ function renderHome() {
   container.innerHTML = targets.map(t => {
     let dotClass = 'ab-target-card__dot';
     let statusLabel = '';
-    if (t.connected) { dotClass += ' ab-target-card__dot--connected'; statusLabel = 'Conectado'; }
+    if (t.connected && t.id === 'claude_desktop') { dotClass += ' ab-target-card__dot--available'; statusLabel = 'Conectado via AI Bridge'; }
+    else if (t.connected) { dotClass += ' ab-target-card__dot--connected'; statusLabel = 'Conectado'; }
     else if (t.installed) { dotClass += ' ab-target-card__dot--available'; statusLabel = 'Instalado'; }
     else { dotClass += ' ab-target-card__dot--unavailable'; statusLabel = 'Não instalado'; }
 
@@ -129,13 +130,21 @@ function renderTarget(key) {
   // Connection line
   const connLine = document.getElementById('target-conn-line');
   if (connLine) {
-    connLine.classList.toggle('ab-conn-bridge--active', t.connected);
+    connLine.classList.toggle('ab-conn-bridge--active', t.mode === 'bridge' || (t.mode == null && t.connected));
   }
 
   // Status
   const statusEl = document.getElementById('target-conn-status');
   if (statusEl) {
     if (!t.installed) statusEl.textContent = 'Não instalado neste sistema';
+    else if (t.id === 'claude_desktop' && t.mode === 'bridge') {
+      const available = (_state.models || []).slice(0, 3).map(m => m.label).join(' · ');
+      statusEl.textContent = available
+        ? 'AI Bridge configurado · modelos disponíveis: ' + available
+        : 'AI Bridge configurado, mas nenhum modelo está disponível.';
+    }
+    else if (t.id === 'claude_desktop' && t.mode === 'external') statusEl.textContent = 'Outro gateway está ativo. Escolha AI Bridge ou Provedor padrão.';
+    else if (t.connected && t.id === 'codex') statusEl.textContent = 'Conectado via AI Bridge · modelo padrão: ' + (_state.active_model_label || 'não selecionado');
     else if (t.connected) statusEl.textContent = 'Conectado via AI Bridge';
     else statusEl.textContent = 'Usando provedor original';
   }
@@ -144,8 +153,23 @@ function renderTarget(key) {
   const pillBridge = document.getElementById('pill-bridge');
   const pillOriginal = document.getElementById('pill-original');
   if (pillBridge && pillOriginal) {
-    pillBridge.classList.toggle('ab-pill-btn--active', t.connected);
-    pillOriginal.classList.toggle('ab-pill-btn--active', !t.connected);
+    const bridgeActive = t.mode ? t.mode === 'bridge' : !!t.connected;
+    const originalActive = t.mode ? t.mode === 'original' : !t.connected;
+    pillBridge.classList.toggle('ab-pill-btn--active', bridgeActive);
+    pillOriginal.classList.toggle('ab-pill-btn--active', originalActive);
+  }
+
+  // Codex default model selection. This changes only the default model, not login/auth.
+  const modelWrap = document.getElementById('target-model-select-wrap');
+  const modelSelect = document.getElementById('target-model-select');
+  if (modelWrap) modelWrap.hidden = t.id !== 'codex';
+  if (modelSelect && t.id === 'codex') {
+    const models = _state.models || [];
+    modelSelect.innerHTML = models.length
+      ? models.map(m => '<option value="' + escHtml(m.value) + '">' + escHtml(m.label) + '</option>').join('')
+      : '<option value="">Nenhum modelo configurado</option>';
+    modelSelect.value = _state.active_model || (models[0]?.value || '');
+    modelSelect.disabled = models.length === 0;
   }
 
   // No provider warning
@@ -269,8 +293,8 @@ async function renderAdd(editName) {
           if (saveLabel) saveLabel.classList.remove('hidden');
         }
       }
-      if (fModels) fModels.value = (detail.models || []).map(m =>
-        typeof m === 'string' ? m : `${m.id}|${m.name}`
+      if (fModels) fModels.value = detail.models_raw || (detail.models || []).map(m =>
+        typeof m === 'string' ? m : `${m.id}|${m.label || m.name || m.id}`
       ).join('\n');
     }
   }
@@ -307,6 +331,55 @@ function escHtml(str) {
 // ── Wire up static controls ───────────────────────────────────────────────────
 
 function wireControls() {
+  // Explicit size controls remain usable even when Windows hides the border of a frameless window.
+  const resizeBy = (delta) => {
+    const api = window.pywebview?.api;
+    if (!api?.resize_window) return;
+    const width = Math.max(520, Math.min(1600, Math.round(window.innerWidth + delta)));
+    const height = Math.max(500, Math.min(1200, Math.round(window.innerHeight + delta)));
+    api.resize_window(width, height).catch(() => toast('Não foi possível redimensionar a janela.', 'error'));
+  };
+  document.getElementById('btn-smaller')?.addEventListener('click', () => resizeBy(-80));
+  document.getElementById('btn-larger')?.addEventListener('click', () => resizeBy(80));
+
+  // Frameless windows do not expose a native resize border; use this corner grip.
+  const resizeGrip = document.getElementById('ab-resize-grip');
+  if (resizeGrip) {
+    let drag = null;
+    let resizeTimer = null;
+    let lastSize = '';
+    const sendSize = (width, height) => {
+      const size = `${width}x${height}`;
+      if (size === lastSize || !window.pywebview?.api?.resize_window) return;
+      lastSize = size;
+      window.pywebview.api.resize_window(width, height).catch(() => { lastSize = ''; });
+    };
+    resizeGrip.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      drag = { x: event.screenX, y: event.screenY, width: window.innerWidth, height: window.innerHeight };
+      resizeGrip.setPointerCapture(event.pointerId);
+    });
+    resizeGrip.addEventListener('pointermove', (event) => {
+      if (!drag) return;
+      event.preventDefault();
+      const width = Math.max(520, Math.round(drag.width + event.screenX - drag.x));
+      const height = Math.max(500, Math.round(drag.height + event.screenY - drag.y));
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => sendSize(width, height), 80);
+    });
+    const stopResize = (event) => {
+      if (!drag) return;
+      const width = Math.max(520, Math.round(drag.width + event.screenX - drag.x));
+      const height = Math.max(500, Math.round(drag.height + event.screenY - drag.y));
+      clearTimeout(resizeTimer);
+      drag = null;
+      sendSize(width, height);
+    };
+    resizeGrip.addEventListener('pointerup', stopResize);
+    resizeGrip.addEventListener('pointercancel', stopResize);
+  }
+
   // Window controls
   document.getElementById('btn-minimize')?.addEventListener('click', () => {
     window.pywebview?.api?.minimize();
@@ -331,34 +404,52 @@ function wireControls() {
   document.getElementById('btn-cancel')?.addEventListener('click', () =>
     go('providers'));
 
-  // Pill toggle (connect / disconnect)
-  document.getElementById('pill-bridge')?.addEventListener('click', async () => {
-    if (!_currentTarget) return;
-    const t = (_state.targets || []).find(x => x.id === _currentTarget);
-    if (t && t.connected) return; // already connected
-    const hasProvider = _state.providers && _state.providers.length > 0;
-    if (!hasProvider) { toast('Adicione um provedor primeiro.', 'error'); return; }
-    const res = await api('connect_target', _currentTarget);
-    if (res && res.ok) {
-      toast('Conectado ao AI Bridge!', 'success');
-      await refresh();
-      renderTarget(_currentTarget);
-    } else {
-      toast(res?.error || 'Falha ao conectar.', 'error');
+  // One-click mode switch. The backend performs a graceful restart when the
+  // desktop client must reload its configuration; no second confirmation dialog.
+  let _modeSwitchPending = false;
+  async function activateClientMode(mode) {
+    if (!_currentTarget || _modeSwitchPending) return;
+    if (mode === 'bridge' && (!_state.providers || !_state.providers.length)) {
+      toast('Adicione e salve um provedor antes de usar o AI Bridge.', 'error');
+      return;
     }
-  });
-
-  document.getElementById('pill-original')?.addEventListener('click', async () => {
-    if (!_currentTarget) return;
-    const t = (_state.targets || []).find(x => x.id === _currentTarget);
-    if (t && !t.connected) return; // already disconnected
-    const res = await api('disconnect_target', _currentTarget);
-    if (res && res.ok) {
-      toast('Desconectado — usando provedor original.', 'info');
+    _modeSwitchPending = true;
+    const bridgeButton = document.getElementById('pill-bridge');
+    const originalButton = document.getElementById('pill-original');
+    if (bridgeButton) bridgeButton.disabled = true;
+    if (originalButton) originalButton.disabled = true;
+    try {
+      const res = await api('activate_target', _currentTarget, mode);
+      if (res?.ok) {
+        toast(res.message || (mode === 'bridge' ? 'Modo AI Bridge aplicado.' : 'Modo original restaurado.'), 'success');
+        await refresh();
+        renderTarget(_currentTarget);
+      } else {
+        toast(res?.error || 'Não foi possível alternar o modo.', 'error');
+        await refresh();
+        renderTarget(_currentTarget);
+      }
+    } catch (error) {
+      toast('Falha ao alternar o modo: ' + (error?.message || error), 'error');
       await refresh();
       renderTarget(_currentTarget);
+    } finally {
+      _modeSwitchPending = false;
+      if (bridgeButton) bridgeButton.disabled = false;
+      if (originalButton) originalButton.disabled = false;
+    }
+  }
+
+  document.getElementById('pill-bridge')?.addEventListener('click', () => activateClientMode('bridge'));
+  document.getElementById('pill-original')?.addEventListener('click', () => activateClientMode('original'));
+  document.getElementById('target-model-select')?.addEventListener('change', async (event) => {
+    const result = await api('set_active_model', event.target.value);
+    if (result?.ok) {
+      await refresh();
+      renderTarget(_currentTarget);
+      toast('Modelo padrão atualizado. Novas sessões do Codex usarão este modelo.', 'success');
     } else {
-      toast(res?.error || 'Falha ao desconectar.', 'error');
+      toast(result?.error || 'Não foi possível alterar o modelo padrão.', 'error');
     }
   });
 
@@ -381,16 +472,29 @@ function wireControls() {
     const key = document.getElementById('f-key')?.value?.trim();
     const btn = document.getElementById('btn-test');
     const resultEl = document.getElementById('test-result');
+    const importBtn = document.getElementById('btn-import-models');
     if (!url) { toast('Preencha a URL antes de testar.', 'error'); return; }
     if (!key && !_editingProvider) { toast('Preencha a chave antes de testar.', 'error'); return; }
-    if (btn) { btn.textContent = '…'; btn.disabled = true; }
+    if (btn) { btn.textContent = 'Testando…'; btn.disabled = true; }
+    if (importBtn) importBtn.hidden = true;
     const res = await api('test_provider', url, key, _editingProvider || null);
-    if (btn) { btn.textContent = 'Testar'; btn.disabled = false; }
+    if (btn) { btn.textContent = 'Testar conexão'; btn.disabled = false; }
     if (resultEl) {
       resultEl.hidden = false;
       if (res && res.ok) {
         resultEl.className = 'ab-test-ok';
-        resultEl.textContent = `✓ Conexão OK — ${res.models_count ?? '?'} modelo(s)`;
+        resultEl.textContent = `✓ Conexão OK — ${res.models_count ?? (res.models || []).length} modelo(s)`;
+        if (importBtn && (res.models || []).length) {
+          importBtn.hidden = false;
+          importBtn.onclick = () => {
+            const modelsField = document.getElementById('f-models');
+            const current = new Set((modelsField?.value || '').split(/\\r?\\n/).map(x => x.trim()).filter(Boolean));
+            (res.models || []).forEach(id => current.add(id));
+            if (modelsField) modelsField.value = Array.from(current).join('\\n');
+            importBtn.hidden = true;
+            toast(`${(res.models || []).length} modelos importados. Revise a lista antes de salvar.`, 'success');
+          };
+        }
       } else {
         resultEl.className = 'ab-test-error';
         resultEl.textContent = `✗ ${res?.error || 'Falha na conexão'}`;
@@ -417,7 +521,12 @@ function wireControls() {
     if (saveBtn) saveBtn.disabled = false;
 
     if (res && res.ok) {
-      toast(`Provedor "${name}" salvo.`, 'success');
+      const restartTargets = res.restart_required_targets || [];
+      if (restartTargets.length) {
+        toast(`Provedor "${name}" salvo. Reinicie ${restartTargets.join(' e ')} para atualizar o seletor de modelos.`, 'success');
+      } else {
+        toast(`Provedor "${name}" salvo.`, 'success');
+      }
       await refresh();
       go('providers');
     } else {

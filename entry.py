@@ -16,20 +16,24 @@ def _ui_url() -> str:
 
 
 def _make_tray_image():
-    """Build a simple tray icon with PIL (blue circle with a link symbol)."""
+    """Load the same branded AI Bridge icon used by the Windows executable."""
     from PIL import Image, ImageDraw
-    size = 64
-    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    # Outer blue circle
-    d.ellipse([0, 0, size - 1, size - 1], fill=(100, 180, 255, 255))
-    # Dark inner background
-    d.ellipse([14, 14, 50, 50], fill=(12, 12, 16, 255))
-    # Two blue dots connected by a line (bridge/link metaphor)
-    d.ellipse([18, 26, 28, 36], fill=(100, 180, 255, 255))
-    d.ellipse([36, 26, 46, 36], fill=(100, 180, 255, 255))
-    d.rectangle([27, 30, 37, 32], fill=(100, 180, 255, 255))
-    return img
+    base = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
+    icon_path = base / 'ai_bridge' / 'ui' / 'assets' / 'icons' / 'ai-bridge.ico'
+    try:
+        with Image.open(icon_path) as source:
+            return source.convert('RGBA').resize((64, 64), Image.Resampling.LANCZOS)
+    except (OSError, ValueError):
+        # Keep the tray usable if an installation is missing the optional icon asset.
+        size = 64
+        img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        d.rounded_rectangle([1, 1, 62, 62], radius=18, fill=(18, 24, 42, 255), outline=(52, 61, 96, 255), width=2)
+        d.line([(15, 38), (25, 28), (31, 26), (39, 30)], fill=(139, 140, 255, 255), width=5)
+        d.line([(49, 26), (39, 36), (33, 38), (25, 34)], fill=(67, 215, 232, 255), width=5)
+        d.ellipse([11, 34, 19, 42], fill=(139, 140, 255, 255))
+        d.ellipse([45, 22, 53, 30], fill=(67, 215, 232, 255))
+        return img
 
 
 def main():
@@ -47,9 +51,9 @@ def main():
         title='AI Bridge',
         url=_ui_url(),
         js_api=bridge,
-        width=520,
-        height=640,
-        min_size=(440, 540),
+        width=680,
+        height=700,
+        min_size=(520, 500),
         resizable=True,
         frameless=True,
         easy_drag=False,

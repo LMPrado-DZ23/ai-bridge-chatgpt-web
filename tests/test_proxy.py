@@ -72,6 +72,35 @@ def client():
         yield c
 
 
+def test_codex_model_catalog_uses_provider_model_ids(client, monkeypatch):
+    monkeypatch.setattr('ai_bridge.proxy.cfg.get_providers', lambda: [{
+        'name': 'DeepSeek',
+        'models': [
+            {'id': 'deepseek-flash', 'label': 'DeepSeek Flash'},
+            {'id': 'deepseek-v4-pro', 'label': 'DeepSeek V4 Pro'},
+        ],
+    }])
+
+    # Codex may fetch model_catalog_url without forwarding the provider token.
+    # The route is loopback-only and exposes model metadata, never API keys.
+    response = client.get('/v1/codex-models')
+
+    assert response.status_code == 200
+    assert client.get('/v1/codex-models', headers={
+        'Authorization': 'Bearer ai-bridge-local'
+    }).status_code == 200
+    models = response.get_json()['models']
+    assert [model['slug'] for model in models] == [
+        'DeepSeek/deepseek-flash', 'DeepSeek/deepseek-v4-pro'
+    ]
+    assert models[0]['displayName'] == 'DeepSeek Flash · DeepSeek'
+    assert models[0]['display_name'] == 'DeepSeek Flash · DeepSeek'
+    assert models[0]['provider'] == 'ai_bridge'
+    assert models[0]['hidden'] is False
+    assert models[0]['supported_in_api'] is True
+    assert models[0]['input_modalities'] == ['text']
+
+
 # ── /health ────────────────────────────────────────────────────────────────────
 
 def test_health(client):
@@ -383,8 +412,9 @@ def test_models_list(client):
     body = resp.get_json()
     assert body['object'] == 'list'
     ids = [m['id'] for m in body['data']]
-    assert any('Model A' in i for i in ids)
-    assert any('Model B' in i for i in ids)
+    assert ids == ['TestProvider/model-a', 'TestProvider/model-b']
+    assert body['data'][0]['display_name'] == 'Model A · TestProvider'
+    assert body['data'][1]['display_name'] == 'Model B · TestProvider'
 
 
 def test_models_empty(client):
@@ -484,3 +514,49 @@ def test_chat_completions_stream(client):
     body_text = resp.data.decode('utf-8')
     # OAI pass-through: each line is forwarded as-is
     assert 'Hi' in body_text
+
+
+# ── /v1/responses ─────────────────────────────────────────────────────────────
+
+def test_responses_api_non_streaming(client):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = OAI_TEXT_RESPONSE
+
+    with patch('ai_bridge.proxy.cfg.get_provider_for_model', return_value=FAKE_PROVIDER), \
+         patch('ai_bridge.proxy.cfg.get_model_id', return_value='test-model'), \
+         patch('ai_bridge.proxy.httpx.post', return_value=mock_resp) as mock_post:
+        resp = client.post('/v1/responses', json={
+            'model': 'TestProvider/test-model',
+            'instructions': 'Be concise',
+            'input': 'Hello',
+        })
+
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body['object'] == 'response'
+    assert body['output'][0]['content'][0]['text'] == 'Hello, world!'
+    call_kwargs = mock_post.call_args.kwargs
+    assert call_kwargs['json']['model'] == 'test-model'
+    assert call_kwargs['json']['messages'][0]['role'] == 'system'
+    assert call_kwargs['json']['messages'][1]['content'] == 'Hello'
+
+
+def test_responses_api_stream_emits_response_events(client):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = OAI_TEXT_RESPONSE
+
+    with patch('ai_bridge.proxy.cfg.get_provider_for_model', return_value=FAKE_PROVIDER), \
+         patch('ai_bridge.proxy.cfg.get_model_id', return_value='test-model'), \
+         patch('ai_bridge.proxy.httpx.post', return_value=mock_resp):
+        resp = client.post('/v1/responses', json={
+            'model': 'TestProvider/test-model',
+            'input': 'Hello',
+            'stream': True,
+        })
+
+    assert resp.status_code == 200
+    assert resp.mimetype == 'text/event-stream'
+    assert 'response.output_text.delta' in resp.get_data(as_text=True)
+    assert 'response.completed' in resp.get_data(as_text=True)

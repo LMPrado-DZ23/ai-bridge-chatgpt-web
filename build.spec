@@ -66,6 +66,7 @@ exe = EXE(
     a.datas,
     [],
     name='AI-Bridge',
+    icon='ai_bridge/ui/assets/icons/ai-bridge.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

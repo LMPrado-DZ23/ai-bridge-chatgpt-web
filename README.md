@@ -100,8 +100,8 @@ Qualquer provedor com API OpenAI-compatible pode ser adicionado manualmente.
 | Destino | Protocolo | Como conecta |
 |---------|-----------|--------------|
 | **Claude Code** | Anthropic | Configura `ANTHROPIC_BASE_URL` + `ANTHROPIC_API_KEY` |
-| **Claude Desktop** | Anthropic | Injeta `claude_desktop_config.json` |
-| **Codex** | OpenAI | Configura variáveis de ambiente do Codex |
+| **Claude Desktop** | Gateway de inferência 3P | Mantém um perfil reversível em `%LOCALAPPDATA%\\Claude-3p\\configLibrary`; troca de modo em um clique com reinício controlado e validação da janela |
+| **Codex Desktop** | OpenAI Responses API | Configura um provedor local AI Bridge e catálogo JSON absoluto; alterna entre AI Bridge e Invision/provedor original em um clique |
 
 ---
 
@@ -143,23 +143,16 @@ pip install pytest
 python -m pytest tests/ -v
 ```
 
-A suíte cobre **24 casos de teste** para a camada de tradução Anthropic ↔ OpenAI:
+A suíte contém **86 testes automatizados** cobrindo:
 
-- Conversão de mensagens (sistema, usuário, assistente)
-- Passagem de parâmetros opcionais (temperatura, top_p, max_tokens, stream)
-- Tool use / function calling (ambas as direções)
-- Streaming SSE (texto e tool calls)
-- Mapeamento de stop_reason
-- Fallback para argumentos inválidos
-- Decodificação de bytes vs strings
+- Tradução Anthropic Messages ↔ OpenAI Chat Completions e Responses API
+- Streaming SSE e tool/function calling
+- Validação de provedores, erros de autenticação e timeout sem expor chaves
+- Catálogos multi-provedor para os seletores do Codex Desktop e Claude Desktop
+- Conexão/desconexão reversível, preservação do provedor Invision e configuração TOML
+- Restauração segura de configurações e detecção de instalação dos aplicativos
 
-```
-tests/test_translate.py::TestToOpenaiRequest::test_simple_message PASSED
-tests/test_translate.py::TestToOpenaiRequest::test_system_string PASSED
-tests/test_translate.py::TestToOpenaiRequest::test_tool_choice_auto PASSED
-...
-24 passed in 0.12s
-```
+Validação local mais recente: `86 passed`; `compileall` e `git diff --check` também concluídos sem erros.
 
 ---
 
