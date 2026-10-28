@@ -1,0 +1,125 @@
+name: Build Binaries
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_label: AI-Bridge-Windows
+            output_name: AI-Bridge-Windows.exe
+          - os: ubuntu-22.04
+            artifact_label: AI-Bridge-Linux
+            output_name: AI-Bridge-Linux
+          - os: macos-latest
+            artifact_label: AI-Bridge-macOS
+            output_name: AI-Bridge-macOS
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            build-essential \
+            python3-gi \
+            python3-gi-cairo \
+            gir1.2-gtk-3.0 \
+            gir1.2-webkit2-4.1 \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            xvfb
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: Run tests
+        run: python -m pytest tests/ -q
+
+      - name: Build binary
+        run: python -m PyInstaller build.spec --noconfirm --clean
+
+      - name: Rename binary for release
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp dist/AI-Bridge.exe "dist/${{ matrix.output_name }}"
+          else
+            cp dist/AI-Bridge "dist/${{ matrix.output_name }}"
+          fi
+
+      - name: Verify packaged output
+        shell: bash
+        run: |
+          test -s "dist/${{ matrix.output_name }}"
+          ls -lh "dist/${{ matrix.output_name }}"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_label }}
+          path: dist/${{ matrix.output_name }}
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all platform binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Verify release files
+        run: |
+          test -s dist/AI-Bridge-Windows.exe
+          test -s dist/AI-Bridge-Linux
+          test -s dist/AI-Bridge-macOS
+          ls -lh dist/
+
+      - name: Publish rolling latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "AI Bridge — Latest Build"
+          body: |
+            Binários compilados pelo GitHub Actions a partir do branch `main`.
+
+            | Plataforma | Download |
+            |---|---|
+            | Windows | [AI-Bridge-Windows.exe](https://github.com/${{ github.repository }}/releases/latest/download/AI-Bridge-Windows.exe) |
+            | Linux | [AI-Bridge-Linux](https://github.com/${{ github.repository }}/releases/latest/download/AI-Bridge-Linux) |
+            | macOS | [AI-Bridge-macOS](https://github.com/${{ github.repository }}/releases/latest/download/AI-Bridge-macOS) |
+
+            Commit: ${{ github.sha }}
+          files: |
+            dist/AI-Bridge-Windows.exe
+            dist/AI-Bridge-Linux
+            dist/AI-Bridge-macOS
+          prerelease: false
+          make_latest: true
