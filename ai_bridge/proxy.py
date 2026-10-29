@@ -6,6 +6,7 @@ import json
 import socket
 import threading
 import logging
+import hmac
 
 from flask import Flask, request, Response, jsonify
 import httpx
@@ -336,6 +337,61 @@ def chat_completions():
     except Exception as e:
         log.exception('Unexpected proxy error (chat/completions)')
         return jsonify({'error': {'message': str(e), 'type': 'server_error'}}), 500
+
+
+# ─── Unified desktop bridge RPC ────────────────────────────────────────────────
+
+_DESKTOP_RPC_METHODS = frozenset({
+    "state", "get_provider_detail", "add_provider", "set_active_model",
+    "remove_provider", "test_provider", "activate_target", "connect_target",
+    "disconnect_target", "connect_claude", "disconnect_claude", "get_presets",
+    "list_skills", "add_skill", "remove_skill", "list_journal", "journal_rollback",
+})
+_desktop_rpc_bridge = None
+_desktop_rpc_token: str | None = None
+
+
+def configure_desktop_rpc(bridge, token: str | None) -> None:
+    """Enable a narrow, authenticated RPC surface for the unified desktop shell."""
+    global _desktop_rpc_bridge, _desktop_rpc_token
+    if bridge is None:
+        _desktop_rpc_bridge, _desktop_rpc_token = None, None
+        return
+    if not isinstance(token, str) or len(token) < 48:
+        raise ValueError("Desktop IPC token must contain at least 48 characters")
+    _desktop_rpc_bridge, _desktop_rpc_token = bridge, token
+
+
+@app.route('/__desktop/rpc', methods=['POST'])
+def desktop_rpc():
+    if request.remote_addr not in ('127.0.0.1', '::1') or request.headers.get('Origin'):
+        return jsonify({'error': 'forbidden'}), 403
+    provided = request.headers.get('X-AI-Bridge-IPC', '')
+    expected = _desktop_rpc_token
+    if not expected or not provided or not hmac.compare_digest(provided, expected):
+        return jsonify({'error': 'unauthorized'}), 401
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({'error': 'invalid_request'}), 400
+    method, args = payload.get('method'), payload.get('args', [])
+    if method not in _DESKTOP_RPC_METHODS or not isinstance(args, list) or len(args) > 8:
+        return jsonify({'error': 'unsupported_method_or_arguments'}), 400
+    target = getattr(_desktop_rpc_bridge, method, None) if _desktop_rpc_bridge else None
+    if not callable(target):
+        return jsonify({'error': 'bridge_not_ready'}), 503
+    try:
+        result = target(*args)
+        if method == 'state' and isinstance(result, dict):
+            result = {key: value for key, value in result.items() if key != 'admin_token'}
+        return jsonify(result)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid_arguments'}), 400
+    except Exception:
+        log.exception('Unified desktop bridge RPC failed', extra={'method': method})
+        return jsonify({
+            'error': 'bridge_operation_failed',
+            'message': 'A operação do AI Bridge falhou.',
+        }), 500
 
 
 # ─── Admin endpoints ────────────────────────────────────────────────────────────

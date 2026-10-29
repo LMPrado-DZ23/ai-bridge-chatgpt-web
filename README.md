@@ -1,4 +1,4 @@
-# AI Bridge
+# AI Bridge + Codex Web GPT
 
 > Proxy local que conecta Claude Code, Claude Desktop e Codex a qualquer modelo OpenAI-compatible — DeepSeek, GPT-4o, Gemini, Groq, Mistral e mais.
 
@@ -105,6 +105,20 @@ Qualquer provedor com API OpenAI-compatible pode ser adicionado manualmente.
 
 ---
 
+### Aplicativo unificado: AI Bridge + Codex Web GPT
+
+O repositório reúne o **AI Bridge** e o **Codex Web GPT** em um único aplicativo desktop. A janela Electron hospeda os dois workspaces: o Codex Web GPT mantém a experiência de conversa, ferramentas e MCP; o AI Bridge fornece a gestão de provedores, modelos e destinos Claude/Codex. A interface do AI Bridge é carregada dentro da mesma janela, e o serviço Python roda como processo filho gerenciado pelo launcher.
+
+- A navegação lateral da janela principal alterna entre **Codex Web GPT** e **AI Bridge**, sem abrir um segundo aplicativo.
+- A sessão autenticada do Codex Web GPT continua sob controle do launcher e não é copiada, apagada, substituída nem migrada pelo workspace AI Bridge.
+- O serviço do AI Bridge usa RPC local com token aleatório por execução, allowlist explícita de métodos e validação da origem Electron; o token administrativo do Bridge não é enviado ao renderer.
+- O launcher integrado está em `integrations/codex-chatgpt-web/launcher/`; no Windows, o pacote validado é NSIS per-user. O smoke test instala apenas em uma pasta temporária, valida o runtime empacotado e verifica a restauração do Registro e dos atalhos.
+- O proxy local do AI Bridge permanece em `http://127.0.0.1:38771`; o catálogo `/v1/codex-models` expõe apenas metadados dos modelos, nunca chaves de API.
+
+A versão integrada do Codex Web GPT conserva a licença e a atribuição upstream em `integrations/codex-chatgpt-web/`. No Windows, o instalador unificado inclui o serviço do AI Bridge e sua UI.
+
+---
+
 ## Segurança
 
 - **Chaves de API nunca gravadas em disco**: armazenadas no keyring do sistema operacional (Credential Manager no Windows, Keychain no macOS, Secret Service no Linux)
@@ -143,7 +157,7 @@ pip install pytest
 python -m pytest tests/ -v
 ```
 
-A suíte contém **136 testes automatizados** (última execução local validada em 28/10/2026) cobrindo:
+A suíte contém **143 testes automatizados** (última execução local validada em 29/10/2026) cobrindo:
 
 - Tradução Anthropic Messages ↔ OpenAI Chat Completions e Responses API
 - Streaming SSE e tool/function calling
@@ -152,7 +166,7 @@ A suíte contém **136 testes automatizados** (última execução local validada
 - Conexão/desconexão reversível, preservação do provedor Invision e configuração TOML
 - Restauração segura de configurações e detecção de instalação dos aplicativos
 
-Validação local em 28/10/2026: `136 passed`; `compileall` e `git diff --check` também concluídos sem erros. O build Windows com PyInstaller deve ser validado separadamente e a interface real requer teste manual no ambiente do usuário.
+Validação local em 29/10/2026: `143 passed`; `compileall` e `git diff --check` concluídos sem erros. O build de produção do launcher, os 80 testes focados do Electron/runtime e o smoke test do instalador Windows isolado passaram. A suíte completa do Codex Web GPT está sendo executada.
 
 ---
 

@@ -62,9 +62,29 @@ function go(screen, extra) {
   else if (screen === 'add') { _editingProvider = extra || null; renderAdd(extra); }
 }
 
-// ── Render: Home ──────────────────────────────────────────────────────────────
+// ── Separate ChatGPT Web runtime ──────────────────────────────────────────────
+
+function refreshChatGptWebStatus() {
+  const statusEl = document.getElementById('chatgpt-web-status');
+  const button = document.getElementById('btn-open-codex-workspace');
+  const returnButton = document.getElementById('btn-back-to-codex');
+  const integratedShell = typeof window.pywebview?.api?.show_codex_workspace === 'function';
+  if (!statusEl || !button) return;
+  if (integratedShell) {
+    statusEl.textContent = 'Workspace integrado à janela principal.';
+    button.disabled = false;
+    button.hidden = false;
+    if (returnButton) returnButton.hidden = false;
+  } else {
+    statusEl.textContent = 'Abra o AI Bridge pelo aplicativo unificado Codex Web GPT para alternar entre os workspaces.';
+    button.disabled = true;
+    button.hidden = true;
+    if (returnButton) returnButton.hidden = true;
+  }
+}
 
 function renderHome() {
+  refreshChatGptWebStatus();
   const provCount = _state.providers ? _state.providers.length : 0;
   const badge = document.getElementById('home-provider-count');
   if (badge) badge.textContent = provCount > 0 ? provCount : '';
@@ -390,6 +410,13 @@ function wireControls() {
 
   // Home: providers button
   document.getElementById('btn-providers')?.addEventListener('click', () => go('providers'));
+  const returnToCodexWorkspace = async () => {
+    const result = await api('show_codex_workspace');
+    if (result?.ok) return;
+    toast(result?.error || 'Não foi possível abrir o workspace Codex.', 'error');
+  };
+  document.getElementById('btn-open-codex-workspace')?.addEventListener('click', returnToCodexWorkspace);
+  document.getElementById('btn-back-to-codex')?.addEventListener('click', returnToCodexWorkspace);
 
   // Target back
   document.getElementById('btn-back-target')?.addEventListener('click', () => go('home'));

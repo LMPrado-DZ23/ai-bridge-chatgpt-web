@@ -1,8 +1,14 @@
 """
 pywebview JS bridge — all public methods are callable from the frontend.
 """
+import base64
+import os
+import subprocess
+import sys
 import threading
+import time
 import webbrowser
+from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
@@ -175,6 +181,96 @@ class Bridge:
     def open_url(self, url: str):
         if url and (url.startswith('https://') or url.startswith('http://localhost')):
             webbrowser.open(url)
+
+    # ── Separate ChatGPT Web desktop runtime ─────────────────────────────────
+
+    @staticmethod
+    def _chatgpt_web_executable():
+        """Find the user's existing ChatGPT Web launcher without changing its profile."""
+        candidates = []
+        if sys.platform == 'win32':
+            local_app_data = os.environ.get('LOCALAPPDATA')
+            if local_app_data:
+                candidates.append(Path(local_app_data) / 'Programs' / 'Codex Web GPT' / 'Codex Web GPT.exe')
+            # Some packaged/managed launch contexts omit LOCALAPPDATA; resolve the
+            # current user's standard profile path as a non-destructive fallback.
+            candidates.append(Path.home() / 'AppData' / 'Local' / 'Programs' / 'Codex Web GPT' / 'Codex Web GPT.exe')
+            program_files = os.environ.get('PROGRAMFILES')
+            if program_files:
+                candidates.append(Path(program_files) / 'Codex Web GPT' / 'Codex Web GPT.exe')
+        elif sys.platform == 'darwin':
+            candidates.extend([
+                Path.home() / 'Applications' / 'Codex Web GPT.app' / 'Contents' / 'MacOS' / 'Codex Web GPT',
+                Path('/Applications/Codex Web GPT.app/Contents/MacOS/Codex Web GPT'),
+            ])
+        else:
+            candidates.extend([Path.home() / '.local' / 'bin' / 'codex-web-gpt', Path('/usr/bin/codex-web-gpt')])
+        found = next((candidate for candidate in candidates if candidate.is_file()), None)
+        if found is not None:
+            return found
+        if sys.platform == 'win32':
+            # In managed Windows launch contexts, direct Python filesystem probes can be
+            # virtualized differently from the interactive user's profile. Ask PowerShell
+            # to resolve only the known per-user install path; never search arbitrary paths.
+            script = r"$p = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Programs\Codex Web GPT\Codex Web GPT.exe'; if (Test-Path -LiteralPath $p -PathType Leaf) { [Console]::Write($p) }"
+            encoded_script = base64.b64encode(script.encode('utf-16le')).decode('ascii')
+            try:
+                result = subprocess.run(
+                    ['powershell.exe', '-NoProfile', '-NonInteractive', '-EncodedCommand', encoded_script],
+                    capture_output=True, text=True, timeout=5, check=False,
+                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+                )
+                resolved = result.stdout.strip()
+                if result.returncode == 0 and resolved:
+                    return Path(resolved)
+            except (OSError, subprocess.SubprocessError):
+                pass
+        return None
+
+    def chatgpt_web_status(self):
+        """Report only whether the separate desktop runtime is installed."""
+        executable = self._chatgpt_web_executable()
+        return {
+            'ok': True,
+            'installed': executable is not None,
+            'name': 'Codex Web GPT',
+            'integration': 'separate-desktop-runtime',
+        }
+
+    def launch_chatgpt_web(self):
+        """Launch the installed ChatGPT Web app; never read, copy, or reset its login data."""
+        executable = self._chatgpt_web_executable()
+        if executable is None:
+            return {
+                'ok': False,
+                'error': 'O runtime Codex Web GPT não foi encontrado. Instale-o separadamente antes de abrir esta função.',
+            }
+        try:
+            kwargs = {
+                'cwd': str(executable.parent),
+                'close_fds': True,
+                'stdin': subprocess.DEVNULL,
+                'stdout': subprocess.DEVNULL,
+                'stderr': subprocess.DEVNULL,
+            }
+            if sys.platform == 'win32':
+                kwargs['creationflags'] = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+            process = subprocess.Popen([str(executable)], **kwargs)
+            time.sleep(0.8)
+            if process.poll() is not None:
+                # Electron may hand the request to an already-running single-instance app.
+                if sys.platform == 'win32':
+                    check = subprocess.run(
+                        ['tasklist.exe', '/FI', 'IMAGENAME eq Codex Web GPT.exe', '/FO', 'CSV', '/NH'],
+                        capture_output=True, text=True, timeout=3, check=False,
+                        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+                    )
+                    if check.returncode == 0 and 'Codex Web GPT.exe' in check.stdout:
+                        return {'ok': True, 'launched': True, 'already_running': True, 'profile_preserved': True}
+                return {'ok': False, 'error': 'O runtime encerrou durante a inicialização; nenhuma configuração foi alterada.'}
+            return {'ok': True, 'launched': True, 'profile_preserved': True}
+        except (OSError, subprocess.SubprocessError) as exc:
+            return {'ok': False, 'error': f'Não foi possível iniciar o runtime: {exc.__class__.__name__}'}
 
     # ── State ────────────────────────────────────────────────────────────────
 

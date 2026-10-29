@@ -39,3 +39,13 @@ htmlcov/
 
 # Logs
 *.log
+
+# Vendored ChatGPT Web source: generated dependencies/build artifacts are not shipped
+**/node_modules/
+integrations/codex-chatgpt-web/dist/
+integrations/codex-chatgpt-web/launcher/dist/
+integrations/codex-chatgpt-web/launcher/release/
+integrations/codex-chatgpt-web/launcher/build/runtime/
+integrations/codex-chatgpt-web/.turbo/
+integrations/codex-chatgpt-web/.cache/
+integrations/codex-chatgpt-web/.tools/

@@ -36,6 +36,42 @@ def _make_tray_image():
         return img
 
 
+def _run_bridge_service() -> int:
+    """Headless bridge mode used by the unified Electron desktop shell."""
+    import json
+    import time
+
+    from ai_bridge import proxy
+    from ai_bridge.bridge import Bridge
+
+    token = os.environ.get('AI_BRIDGE_DESKTOP_IPC_TOKEN', '')
+    ready_path = os.environ.get('AI_BRIDGE_DESKTOP_READY_FILE', '')
+    if len(token) < 48 or not ready_path or not Path(ready_path).is_absolute():
+        logging.error('Unified desktop bridge service requires private IPC configuration.')
+        return 2
+
+    ready_file = Path(ready_path)
+    ready_file.parent.mkdir(parents=True, exist_ok=True)
+    bridge = Bridge()
+    proxy.configure_desktop_rpc(bridge, token)
+    port = proxy.start()
+    payload = json.dumps({'version': 1, 'port': port}, separators=(',', ':'))
+    temporary = ready_file.with_suffix(ready_file.suffix + '.tmp')
+    temporary.write_text(payload, encoding='utf-8')
+    os.replace(temporary, ready_file)
+
+    # The Electron parent owns this service lifecycle and terminates the child on quit.
+    try:
+        threading.Event().wait()
+    finally:
+        proxy.configure_desktop_rpc(None, None)
+        try:
+            ready_file.unlink(missing_ok=True)
+        except OSError:
+            pass
+    return 0
+
+
 def main():
     from ai_bridge import proxy
     from ai_bridge.bridge import Bridge
@@ -105,4 +141,6 @@ def main():
 
 
 if __name__ == '__main__':
+    if '--bridge-service' in sys.argv:
+        raise SystemExit(_run_bridge_service())
     main()

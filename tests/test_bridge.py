@@ -3,7 +3,97 @@ from unittest.mock import Mock
 
 import httpx
 
+from ai_bridge import bridge as bridge_module
 from ai_bridge.bridge import Bridge
+
+
+def test_chatgpt_web_runtime_discovery_uses_bounded_powershell_fallback(monkeypatch):
+    expected = r"C:\Users\test-user\AppData\Local\Programs\Codex Web GPT\Codex Web GPT.exe"
+    monkeypatch.setattr(bridge_module.sys, "platform", "win32")
+    monkeypatch.setattr(bridge_module.Path, "is_file", lambda _path: False)
+    monkeypatch.setattr(
+        bridge_module.subprocess,
+        "run",
+        Mock(return_value=Mock(returncode=0, stdout=expected, stderr="")),
+    )
+
+    result = Bridge._chatgpt_web_executable()
+
+    assert str(result) == expected
+    bridge_module.subprocess.run.assert_called_once()
+    assert "-EncodedCommand" in bridge_module.subprocess.run.call_args.args[0]
+
+
+def test_chatgpt_web_status_reports_installed_runtime_without_exposing_profile(monkeypatch, tmp_path):
+    executable = tmp_path / "Codex Web GPT.exe"
+    executable.write_text("test executable")
+    monkeypatch.setattr(Bridge, "_chatgpt_web_executable", staticmethod(lambda: executable))
+
+    result = Bridge().chatgpt_web_status()
+
+    assert result == {
+        "ok": True,
+        "installed": True,
+        "name": "Codex Web GPT",
+        "integration": "separate-desktop-runtime",
+    }
+    assert "path" not in result
+    assert "profile" not in result
+
+
+def test_chatgpt_web_launch_preserves_existing_profile_and_checks_start(monkeypatch, tmp_path):
+    executable = tmp_path / "Codex Web GPT.exe"
+    executable.write_text("test executable")
+    process = Mock()
+    process.poll.return_value = None
+    popen = Mock(return_value=process)
+    monkeypatch.setattr(Bridge, "_chatgpt_web_executable", staticmethod(lambda: executable))
+    monkeypatch.setattr(bridge_module.subprocess, "Popen", popen)
+    monkeypatch.setattr(bridge_module.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(bridge_module.sys, "platform", "linux")
+
+    result = Bridge().launch_chatgpt_web()
+
+    assert result == {"ok": True, "launched": True, "profile_preserved": True}
+    popen.assert_called_once()
+    assert popen.call_args.args[0] == [str(executable)]
+
+
+def test_chatgpt_web_launch_accepts_existing_single_instance(monkeypatch, tmp_path):
+    executable = tmp_path / "Codex Web GPT.exe"
+    executable.write_text("test executable")
+    process = Mock()
+    process.poll.return_value = 0
+    monkeypatch.setattr(Bridge, "_chatgpt_web_executable", staticmethod(lambda: executable))
+    monkeypatch.setattr(bridge_module.subprocess, "Popen", Mock(return_value=process))
+    monkeypatch.setattr(bridge_module.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(
+        bridge_module.subprocess,
+        "run",
+        Mock(return_value=Mock(returncode=0, stdout='"Codex Web GPT.exe","123","Console","1","1,024 K"\n')),
+    )
+    monkeypatch.setattr(bridge_module.sys, "platform", "win32")
+    monkeypatch.setattr(bridge_module.subprocess, "CREATE_NO_WINDOW", 0, raising=False)
+
+    result = Bridge().launch_chatgpt_web()
+
+    assert result == {
+        "ok": True,
+        "launched": True,
+        "already_running": True,
+        "profile_preserved": True,
+    }
+    bridge_module.subprocess.Popen.assert_called_once()
+    bridge_module.subprocess.run.assert_called_once()
+
+
+def test_chatgpt_web_launch_fails_closed_when_runtime_is_missing(monkeypatch):
+    monkeypatch.setattr(Bridge, "_chatgpt_web_executable", staticmethod(lambda: None))
+
+    result = Bridge().launch_chatgpt_web()
+
+    assert result["ok"] is False
+    assert "não foi encontrado" in result["error"]
 
 
 def test_resize_window_clamps_to_minimum_and_maximum():
