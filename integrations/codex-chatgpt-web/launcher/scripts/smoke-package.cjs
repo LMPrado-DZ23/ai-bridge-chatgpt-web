@@ -97,10 +97,32 @@ function startIsolatedLauncherWatchdog(executable) {
 }
 
 function smokeEnvironment() {
+  const launcherData = path.join(scratch, "launcher-data");
+  if (process.platform === "win32") {
+    // The bridge round-trip smoke exercises the workspace navigation from the normal shell.
+    // Seed only this disposable profile as already configured so the real workspace sidebar is
+    // visible; production state and the user's profile are never touched.
+    fs.mkdirSync(launcherData, { recursive: true });
+    fs.writeFileSync(path.join(launcherData, "launcher-state.json"), `${JSON.stringify({
+      version: 1,
+      language: "en",
+      onboardingComplete: true,
+      coreSetupComplete: true,
+      codexCatalogVerified: true,
+      mcpSetupComplete: false,
+      mcpRuntimeInstalled: false,
+      codexRestartRequired: false,
+      autoStart: false,
+      keepRunningOnClose: false,
+      browserInteractionMode: "manual",
+      sidebarOpen: true,
+      sidebarWidth: 252,
+    }, null, 2)}\n`);
+  }
   return {
     ...process.env,
     TMPDIR: scratch,
-    CODEX_WEB_GPT_LAUNCHER_DATA_DIR: path.join(scratch, "launcher-data"),
+    CODEX_WEB_GPT_LAUNCHER_DATA_DIR: launcherData,
     CODEX_CHATGPT_WEB_HOME: coreHome,
     CODEX_HOME: path.join(scratch, "codex-home"),
     CODEX_WEB_GPT_SMOKE_FILE: markerPath,
@@ -177,6 +199,7 @@ try {
   if (marker.ok !== true
     || marker.packaged !== true
     || marker.runtimeVerified !== true
+    || (process.platform === "win32" && marker.bridgeIntegrationVerified !== true)
     || marker.version !== expectedVersion
     || marker.platform !== process.platform) {
     throw new Error(`Unexpected packaged launcher marker: ${JSON.stringify(marker)}`);

@@ -4,7 +4,7 @@ const languages = require("./languages.json");
 const fs = require("node:fs");
 const net = require("node:net");
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 const {
   app,
@@ -392,6 +392,22 @@ function bridgeServiceExecutable() {
 
 const wait = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds));
 
+function terminateBridgeService(child = bridgeServiceChild) {
+  if (!child || child.exitCode !== null) return;
+  if (process.platform === "win32" && Number.isInteger(child.pid)) {
+    // PyInstaller one-file executables may spawn a bootloader child. Kill the owned process tree,
+    // not only Electron's direct child, so shutdown cannot leave the Bridge service orphaned.
+    try {
+      spawnSync("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], {
+        encoding: "utf8",
+        windowsHide: true,
+        timeout: 5_000,
+      });
+    } catch {}
+  }
+  try { child.kill(); } catch {}
+}
+
 async function ensureBridgeService() {
   if (bridgeServiceChild && bridgeServicePort && bridgeServiceToken) {
     try {
@@ -400,7 +416,7 @@ async function ensureBridgeService() {
       });
       if (health.ok) return { port: bridgeServicePort, token: bridgeServiceToken };
     } catch {}
-    bridgeServiceChild.kill();
+    terminateBridgeService(bridgeServiceChild);
     bridgeServiceChild = null;
     bridgeServicePort = null;
     bridgeServiceToken = null;
@@ -454,7 +470,7 @@ async function ensureBridgeService() {
       } catch {}
       await wait(150);
     }
-    child.kill();
+    terminateBridgeService(child);
     bridgeServiceChild = null;
     throw new Error("O serviço do AI Bridge não ficou pronto no tempo esperado.");
   })().finally(() => { bridgeServiceStartPromise = null; });
@@ -1352,9 +1368,7 @@ async function start() {
   app.on("second-instance", () => showMainWindow());
   app.on("activate", () => showMainWindow());
   app.on("will-quit", () => {
-    if (bridgeServiceChild && bridgeServiceChild.exitCode === null) {
-      try { bridgeServiceChild.kill(); } catch {}
-    }
+    terminateBridgeService(bridgeServiceChild);
     try { fs.rmSync(path.join(launcherUserData, "bridge-service-ready.json"), { force: true }); } catch {}
   });
 
@@ -1541,6 +1555,46 @@ async function start() {
         + ` stderr=${JSON.stringify(versionResult.stderr.trim())})`,
       );
     }
+    let bridgeIntegrationVerified = false;
+    if (process.platform === "win32") {
+      // The Windows package must prove the real integrated workspace round-trip,
+      // not merely that the outer Electron window can launch.
+      await setBridgeUiActive(true);
+      const bridgeState = await bridgeUiView.webContents.executeJavaScript(
+        "window.pywebview.api.state()",
+      );
+      if (!bridgeState || !Array.isArray(bridgeState.providers) || Object.hasOwn(bridgeState, "admin_token")) {
+        throw new Error("AI Bridge smoke test received invalid or sensitive renderer state");
+      }
+
+      const returnedToCodex = await bridgeUiView.webContents.executeJavaScript(
+        "window.pywebview.api.show_codex_workspace()",
+      );
+      if (!returnedToCodex?.ok) throw new Error("AI Bridge could not return to the Codex workspace");
+      await wait(200);
+
+      const clickedBridge = await mainWindow.webContents.executeJavaScript(`(() => {
+        const button = [...document.querySelectorAll("button")]
+          .find((candidate) => candidate.textContent?.trim() === "AI Bridge");
+        if (!button) return false;
+        button.click();
+        return true;
+      })()`);
+      if (!clickedBridge) throw new Error("Codex workspace did not expose the AI Bridge navigation item");
+
+      const bridgeDeadline = Date.now() + 10_000;
+      while (!bridgeUiActive && Date.now() < bridgeDeadline) await wait(50);
+      if (!bridgeUiActive) throw new Error("Codex-to-AI-Bridge workspace navigation did not reactivate the Bridge view");
+
+      const roundTripState = await bridgeUiView.webContents.executeJavaScript(
+        "window.pywebview.api.state()",
+      );
+      if (!roundTripState || !Array.isArray(roundTripState.providers) || Object.hasOwn(roundTripState, "admin_token")) {
+        throw new Error("AI Bridge state did not survive a workspace round-trip");
+      }
+      await bridgeUiView.webContents.executeJavaScript("window.pywebview.api.show_codex_workspace()");
+      bridgeIntegrationVerified = true;
+    }
     const markerPath = process.env.CODEX_WEB_GPT_SMOKE_FILE?.trim();
     if (!markerPath || !path.isAbsolute(markerPath)) {
       throw new Error("Packaged launcher smoke test requires an absolute CODEX_WEB_GPT_SMOKE_FILE");
@@ -1552,6 +1606,7 @@ async function start() {
       platform: process.platform,
       packaged: app.isPackaged,
       runtimeVerified: true,
+      bridgeIntegrationVerified,
     })}\n`);
     browserHost.destroy();
     await browserControl.close();
@@ -1765,8 +1820,9 @@ void start().catch(async (error) => {
     try { browserHost?.destroy(); } catch (caught) { cleanupErrors.push(String(caught)); }
     try { await browserControl?.close(); } catch (caught) { cleanupErrors.push(String(caught)); }
     if (process.argv.includes("--launcher-smoke-test")) {
-      // A failed smoke launch must terminate with failure instead of leaving Electron alive
-      // after the startup error has been logged.
+      // A failed smoke launch must release its isolated Bridge child before exiting.
+      terminateBridgeService(bridgeServiceChild);
+      try { fs.rmSync(path.join(launcherUserData, "bridge-service-ready.json"), { force: true }); } catch {}
       app.exit(1);
       return;
     }

@@ -19,6 +19,10 @@ test("Windows unified package embeds the AI Bridge service and UI resources", ()
   assert.ok(resources.some((item) => item.from === "../../../build/unified-dist/AI-Bridge.exe"
     && item.to === "bridge/AI-Bridge.exe"));
   assert.ok(resources.some((item) => item.from === "../../../ai_bridge/ui" && item.to === "bridge/ui"));
+  const smoke = fs.readFileSync(path.join(launcherRoot, "scripts", "smoke-package.cjs"), "utf8");
+  assert.match(smoke, /coreSetupComplete: true/);
+  assert.match(smoke, /codexCatalogVerified: true/);
+  assert.match(smoke, /launcher-state\.json/);
   const packager = fs.readFileSync(path.join(launcherRoot, "scripts", "package.cjs"), "utf8");
   assert.match(packager, /function buildUnifiedBridgeService\(\)/);
   assert.match(packager, /buildUnifiedBridgeService\(\);/);
